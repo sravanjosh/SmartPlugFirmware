@@ -56,12 +56,10 @@ void switch_on() {
 
     digitalWrite(SMART_PLUG_PIN, HIGH);
 
-    // TODO: Uncomment for auto_off_on feature to work
     stop_auto_on();
     start_auto_off();
 
     on_off_mutex.unlock();
-    /*last_on_time = Time.local();*/
 }
 
 void switch_off() {
@@ -75,12 +73,10 @@ void switch_off() {
     start_auto_on();
 
     on_off_mutex.unlock();
-    /*last_off_time = Time.local();*/
 }
 
+Timer t_switch_of(1000, switch_off, true);
 Timer t_switch_on(1000, switch_on, true);
-Timer t_switch_off(1000, switch_off, true);
-
 
 // **************************
 // CLOUD FUNCTIONS
@@ -103,7 +99,7 @@ int f_switch_on(String t_str){
 
     _time *= 1000;
 
-    t_switch_off.stop();
+    t_switch_of.stop();
 
     if (_time == 0) {
       switch_on();
@@ -138,8 +134,8 @@ int f_switch_off(String t_str){
     if (_time == 0) {
       switch_off();
     } else {
-      t_switch_off.changePeriod(_time);
-      t_switch_off.reset();
+      t_switch_of.changePeriod(_time);
+      t_switch_of.start();
     }
 
     return 0;

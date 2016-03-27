@@ -29,12 +29,12 @@
 #include "application.h"
 
 // Should be a max of 8, as alarms_addr_mask is of int8_t
-#define NO_ALARMS_SUPPORTED 2
-#define ALARMS_START_ADDRESS 200
-#define ALARM_ADDR_MASK_ADDRESS 195
+#define NO_ALARMS_SUPPORTED                         2
+#define ALARMS_START_ADDRESS                        200
+#define ALARM_ADDR_MASK_ADDRESS                     195
 
-#define CLOUD_TIME_STAMP_DELIM ':'
-#define CLOUD_DOW_DELIM ','
+#define CLOUD_TIME_STAMP_DELIM                      ':'
+#define CLOUD_DOW_DELIM                             ','
 
 enum SocketAction {
   ON,

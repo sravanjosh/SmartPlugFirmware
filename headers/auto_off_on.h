@@ -28,33 +28,33 @@
 
 #include "device_control.h"
 
-#define AUTO_OFF_MEM_LOCATION 180
-#define AUTO_ON_MEM_LOCATION 181
+#define     AUTO_OFF_MEM_LOCATION         180
+#define     AUTO_ON_MEM_LOCATION          181
 
 // auto_on_off_time is uint8_t, so a maximum of 255 can be present. To be safe kept 200
-#define MAX_AUTO_OFF_ON_TIME 200
-#define MIN_AUTO_OFF_ON_TIME 1
-#define AUTO_OFF_ON_NEVER 0
+#define     MAX_AUTO_OFF_ON_TIME          200
+#define     MIN_AUTO_OFF_ON_TIME          1
+#define     AUTO_OFF_ON_NEVER             0
 
 // 0 Means never and unit is minutes and a maximum of 200 mins
-extern uint8_t auto_off_time;
-extern uint8_t auto_on_time;
+extern      uint8_t auto_off_time;
+extern      uint8_t auto_on_time;
 
-void persist_auto_off_time(uint8_t time);
-void persist_auto_on_time(uint8_t time);
-void load_auto_off_time();
-void load_auto_on_time();
+void        persist_auto_off_time(uint8_t time);
+void        persist_auto_on_time(uint8_t time);
+void        load_auto_off_time();
+void        load_auto_on_time();
 
-void start_auto_off();
-void stop_auto_off();
-void start_auto_on();
-void stop_auto_on();
+void        start_auto_off();
+void        stop_auto_off();
+void        start_auto_on();
+void        stop_auto_on();
 
-extern Timer t_auto_off;
-extern Timer t_auto_on;
+extern      Timer t_auto_off;
+extern      Timer t_auto_on;
 
-int f_auto_off(String t_str);
-int f_auto_on(String t_str);
-void register_auto_off_on_cloud_functions();
+int         f_auto_off(String t_str);
+int         f_auto_on(String t_str);
+void        register_auto_off_on_cloud_functions();
 
 #endif

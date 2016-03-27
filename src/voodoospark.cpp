@@ -37,9 +37,10 @@
 #include "auto_off_on.h"
 
 uint8_t bytesToExpectByAction[] = {
+  0, //keepalive (0x00)
   /* Device Control */
-  2, //f_switch_on (0x00)
-  2, //f_switch_off (0x01)
+  2, //f_switch_on (0x01)
+  2, //f_switch_off (0x02)
   0, //Reserved
   0, //Reserved
   0, //Reserved
@@ -56,7 +57,7 @@ uint8_t bytesToExpectByAction[] = {
 TCPServer server = TCPServer(PORT);
 TCPClient client;
 
-volatile bool hasAction = false;
+volatile bool hasAction   = false;
 volatile bool isConnected = false;
 
 byte analogReporting[20];
@@ -71,68 +72,9 @@ int bytesRead = 0;
 int bytesExpecting = 0;
 int reporters = 0;
 
-unsigned long lastms;
-unsigned long nowms;
-unsigned long SerialSpeed[] = {
-  600, 1200, 2400, 4800, 9600, 14400, 19200, 28800, 38400, 57600, 115200
-};
-#if IS_PHOTON()
-  unsigned long sampleInterval = 20;
-#else
-  unsigned long sampleInterval = 100;
-#endif
-
+int lastKeepaliveTime          = 0;
 Thread* monitorClientThread;
 
-void ToUInt7Array(long value, uint8_t b[]) {
-  // LSB
-  b[0] = value & 0x7F;
-  // MSB
-  b[1] = value >> 0x07 & 0x7F;
-}
-
-void send(int action, int pinOrPort, int pinOrPortValue) {
-  uint8_t buf[4];
-  uint8_t u7[2];
-
-  // See https://github.com/voodootikigod/voodoospark/issues/20
-  // to understand why the send function splits values
-  // into two 7-bit bytes before sending.
-  ToUInt7Array(pinOrPortValue, u7);
-
-  buf[0] = action;
-  buf[1] = pinOrPort;
-  // LSB
-  buf[2] = u7[0];
-  // MSB
-  buf[3] = u7[1];
-
-  server.write(buf, 4);
-}
-
-// os_thread_return_t monitorClients(void* param){
-//   _loop();
-// }
-
-void _setup() {
-
-  server.begin();
-
-  #if _DEBUG
-  Serial.begin(115200);
-  #endif
-
-  IPAddress ip = WiFi.localIP();
-  static char ipAddress[24] = "";
-
-  // https://community.particle.io/t/network-localip-to-string-to-get-it-via-spark-variable/2581/5
-  sprintf(ipAddress, "%d.%d.%d.%d:%d", ip[0], ip[1], ip[2], ip[3], PORT);
-
-  Particle.variable("endpoint", ipAddress, STRING);
-
-  t_voodootimer.start();
-  // monitorClientThread = new Thread("monitorClientThread", monitorClients, NULL);
-}
 
 void cacheBuffer(int byteCount, int cacheLength) {
   // Copy the expected bytes into the cache and shift
@@ -174,10 +116,6 @@ void restore() {
   reporters = 0;
   bytesRead = 0;
   bytesExpecting = 0;
-
-  lastms = 0;
-  nowms = 0;
-  sampleInterval = 100;
 
   memset(&analogReporting[0], 0, 20);
   memset(&buffer[0], 0, MAX_DATA_BYTES);
@@ -250,27 +188,38 @@ void processInput() {
     // Proceed with action processing
     switch (action) {
 
+      case KEEPALIVE:
+          lastKeepaliveTime = Time.local();
+
+          // Acknowledge the KEEPALIVE
+          server.write((byte)0x00);
+
+          break;
       case SWITCH_ON:
           {
-            uint16_t time = (uint16_t)(cached[1] | (cached[2] << 7));
+            uint16_t time = (uint16_t)(cached[1] | (cached[2] << 8));
 
             #if _DEBUG
             Serial.printf("\nSwitch On: Time: %d", time);
             #endif
 
-            f_switch_on(String(time, DEC));
+            if (f_switch_on(String(time, DEC)) == 0) {
+              server.write((byte)0x00);
+            }
           }
 
         break;
       case SWITCH_OFF:
           {
-            uint16_t time = (uint16_t)(cached[1] | (cached[2] << 7));
+            uint16_t time = (uint16_t)(cached[1] | (cached[2] << 8));
 
             #if _DEBUG
             Serial.printf("\nSwitch Off: Time: %d", time);
             #endif
 
-            f_switch_off(String(time, DEC));
+            if(f_switch_off(String(time, DEC)) == 0) {
+              server.write((byte)0x00);
+            }
           }
 
         break;
@@ -280,7 +229,9 @@ void processInput() {
             Serial.printf("\nAuto On: Time: %d", cached[1]);
             #endif
 
-            f_auto_on(String(cached[1], DEC));
+            if(f_auto_on(String(cached[1], DEC)) == 0) {
+              server.write((byte)0x00);
+            }
           }
 
         break;
@@ -290,7 +241,9 @@ void processInput() {
             Serial.printf("\nAuto Off: Time: %d", cached[1]);
             #endif
 
-            f_auto_off(String(cached[1], DEC));
+            if(f_auto_off(String(cached[1], DEC)) == 0) {
+              server.write((byte)0x00);
+            }
           }
 
         break;
@@ -331,14 +284,46 @@ void processInput() {
   }
 }
 
+void _setup() {
+
+  server.begin();
+
+  #if _DEBUG
+  Serial.begin(115200);
+  #endif
+
+  IPAddress ip = WiFi.localIP();
+  static char ipAddress[24] = "";
+
+  // https://community.particle.io/t/network-localip-to-string-to-get-it-via-spark-variable/2581/5
+  sprintf(ipAddress, "%d.%d.%d.%d:%d", ip[0], ip[1], ip[2], ip[3], PORT);
+
+  Particle.variable("endpoint", ipAddress, STRING);
+
+  t_voodootimer.start();
+  // monitorClientThread = new Thread("monitorClientThread", monitorClients, NULL);
+}
+
 void _loop() {
   if (client.connected()) {
 
     if (!isConnected) {
       restore();
+      lastKeepaliveTime = Time.local();
       #if _DEBUG
       Serial.println("--------------CONNECTED");
       #endif
+    } else {
+      if((Time.local() - lastKeepaliveTime) >= KEEPALIVE_TIMEOUT) {
+        #if _DEBUG
+        Serial.println("--------------KEEPALIVE EXPIRED, CLOSED");
+        #endif
+
+        client.flush();
+        client.stop();
+        restore();
+        return;
+      }
     }
 
     isConnected = true;

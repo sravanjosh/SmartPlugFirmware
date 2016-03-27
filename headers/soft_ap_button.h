@@ -28,11 +28,10 @@
 
 #include "application.h"
 
-#define SOFT_AP_BUTTON_PIN D6
+#define     SOFT_AP_BUTTON_PIN      D6
+#define     DEBOUNCE                250
 
-#define DEBOUNCE 250
-
-void init_soft_ap_button();
-void soft_ap_button_ISR();
+void        init_soft_ap_button();
+void        soft_ap_button_ISR();
 
 #endif

@@ -22,6 +22,7 @@
  * Controlling the device's input/output pins to switch_on and switch_off the
  * smart plug.
  */
+
 #include <vector>
 #include <mutex>
 
@@ -29,8 +30,10 @@
 
 #define GET_ALARM_ADDRESS(INDEX) (ALARMS_START_ADDRESS + INDEX * (sizeof(struct alarm_time)))
 
-// mask that says which alarm_address has valid alarm.
-/* Starting from left(MSB) of the byte 1-occupied, 0-unoccupied*/
+/*
+  Mask that says which alarm_address has valid alarm.
+  Starting from left(MSb) of the byte 1-occupied, 0-unoccupied
+*/
 volatile uint8_t alarms_addr_mask = 0x00;
 struct alarm_time *alarms[NO_ALARMS_SUPPORTED];
 std::mutex alarm_eeprom_mutex;
@@ -73,6 +76,10 @@ void load_alarms() {
   for (int i=0; i<NO_ALARMS_SUPPORTED;i++) {
 
     alarms[i] = (struct alarm_time*)malloc(sizeof(struct alarm_time));
+    if (alarms[i] == NULL) {
+      Serial.printf("\nOut of Memory, couldn't load alarms");
+      return;
+    }
     if(!get_alarm(i, alarms[i])) {
       free(alarms[i]);
       alarms[i] = NULL;
@@ -85,8 +92,12 @@ void print_alarm(int8_t index) {
       return;
 
   struct alarm_time *alarm = (struct alarm_time*)malloc(sizeof(struct alarm_time));
+  if(alarm == NULL) {
+    Serial.printf("\nOut of Memory, couldn't fetch alarm for print");
+    return;
+  }
   if (!get_alarm(index, alarm)) {
-    Serial.println("\nprint_alarm: No Alarm found");
+    Serial.printf("\nprint_alarm: No Alarm found");
     free(alarm);
     return;
   }
@@ -228,6 +239,11 @@ int f_create_alarm(String t_str){
     std::string token;
 
     struct alarm_time *alarm = (struct alarm_time*)malloc(sizeof(struct alarm_time));
+    if(alarm == NULL) {
+      Serial.printf("\nOut of Memory, couldn't create alarm");
+      return -1;
+    }
+
     char *endptr;
 
     int count = 0;

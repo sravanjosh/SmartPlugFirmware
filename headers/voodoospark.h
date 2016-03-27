@@ -1,31 +1,35 @@
-#ifndef __VOODOO_H_
+#ifndef  __VOODOO_H_
 #define  __VOODOO_H_
 
 #include "application.h"
 
-#define _DEBUG 0
-#define PORT 48879
-#define MAX_DATA_BYTES 128
+#define   _DEBUG                      1
+#define   PORT                        48879
+#define   MAX_DATA_BYTES              128
 
 // table of action codes
 // to do: make this an enum?
-#define SWITCH_ON                   0x00
-#define SWITCH_OFF                  0x01
+#define   KEEPALIVE                   0x00
+#define   SWITCH_ON                   0x01
+#define   SWITCH_OFF                  0x02
 /* GAP */
-#define AUTO_ON_TIME                0x05
-#define AUTO_OFF_TIME               0x06
+#define   AUTO_ON_TIME                0x06
+#define   AUTO_OFF_TIME               0x07
 
-#define ACTION_RANGE                0x0A
+#define   ACTION_RANGE                0x0F
 
-#define IS_PHOTON() PLATFORM_ID == PLATFORM_PHOTON_PRODUCTION || \
-                    PLATFORM_ID == PLATFORM_P1
+// Number of Seconds not received keepalives takeoff client
+#define   KEEPALIVE_TIMEOUT           15 //Seconds
 
-#define IS_CORE() PLATFORM_ID == PLATFORM_SPARK_CORE || \
-                    PLATFORM_ID == PLATFORM_SPARK_CORE_HD
+#define   IS_PHOTON()                 PLATFORM_ID == PLATFORM_PHOTON_PRODUCTION || \
+                                      PLATFORM_ID == PLATFORM_P1
 
-void _setup();
-void _loop();
+#define   IS_CORE()                   PLATFORM_ID == PLATFORM_SPARK_CORE || \
+                                      PLATFORM_ID == PLATFORM_SPARK_CORE_HD
 
-extern Timer t_voodootimer;
+void      _setup();
+void      _loop();
+
+extern    Timer t_voodootimer;
 
 #endif

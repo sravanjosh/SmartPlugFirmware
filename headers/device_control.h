@@ -30,26 +30,26 @@
 #include "application.h"
 #include "auto_off_on.h"
 
-#define SMART_PLUG_PIN D7
+#define     SMART_PLUG_PIN D7
 
 // Timer used is uint16_t, so a max of 65535 is possible, for safety restricted
 //    to 15 Hours
-#define MAX_ONE_TIME_ON_OFF_TIMER 54000
+#define     MAX_ONE_TIME_ON_OFF_TIMER 54000
 
-extern Timer t_switch_on;
-extern Timer t_switch_off;
-extern int led2;
+extern      Timer t_switch_on;
+extern      Timer t_switch_off;
+extern      int led2;
 
 // extern unsigned long last_on_time;
 // extern unsigned long last_off_time;
 
-void init_device_control();
-bool is_switch_on();
-void register_dev_cntrl_cloud_functions();
-void switch_on();
-void switch_off();
+void        init_device_control();
+bool        is_switch_on();
+void        register_dev_cntrl_cloud_functions();
+void        switch_on();
+void        switch_off();
 
-int f_switch_on(String t_str);
-int f_switch_off(String t_str);
+int         f_switch_on(String t_str);
+int         f_switch_off(String t_str);
 
 #endif
