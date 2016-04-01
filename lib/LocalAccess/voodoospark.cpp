@@ -35,6 +35,7 @@
 #include "voodoospark.h"
 #include "device_control.h"
 #include "auto_off_on.h"
+#include "globals.h"
 
 uint8_t bytesToExpectByAction[] = {
   0, //keepalive (0x00)
@@ -112,6 +113,7 @@ void restore() {
 
   hasAction = false;
   isConnected = false;
+  is_away = true;
 
   reporters = 0;
   bytesRead = 0;
@@ -327,6 +329,7 @@ void _loop() {
     }
 
     isConnected = true;
+    is_away = false;
 
     // Process incoming bytes first
     available = client.available();

@@ -36,8 +36,6 @@
 //    to 15 Hours
 #define     MAX_ONE_TIME_ON_OFF_TIMER 54000
 
-extern      Timer t_switch_on;
-extern      Timer t_switch_off;
 extern      int led2;
 
 // extern unsigned long last_on_time;

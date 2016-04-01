@@ -27,6 +27,8 @@
 #define __ALRM_H_
 
 #include "application.h"
+#include "TimeAlarms.h"
+
 
 // Should be a max of 8, as alarms_addr_mask is of int8_t
 #define NO_ALARMS_SUPPORTED                         2
@@ -61,14 +63,15 @@ struct alarm_time {
     | R | S | M | T | W | T | F | S |
     +-------------------------------+
     R - Reserved
-    0 - Not wild card
-    1 - Wildcard
+    0 - Not set
+    1 - Set
   */
-  byte dow_mask = 0x0;
+  byte dow_mask = 0xff;
   SocketAction action = ON;
 };
 
-extern Timer t_monitor_alarms;
+// extern Timer t_monitor_alarms;
+// extern TimeAlarmsClass alarm_monitor_alarms;
 
 int8_t get_free_alarm_index();
 void load_alarms();

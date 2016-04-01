@@ -22,7 +22,7 @@
  * Controlling the device's input/output pins to switch_on and switch_off the
  * smart plug.
  */
-
+#include "TimeAlarms.h"
 #include "application.h"
 #include "device_control.h"
 #include "soft_ap_button.h"
@@ -34,16 +34,11 @@
 
 SYSTEM_THREAD(ENABLED);
 
-/*TCPServer server = TCPServer(23);
-TCPClient client;*/
-
 #define HTTP_PORT 80
 #define ALT_HTTP_PORT 8080
 
 MDNS mdns;
 
-/*TCPServer httpServer = TCPServer(HTTP_PORT);
-TCPServer altServer = TCPServer(ALT_HTTP_PORT);*/
 void _mdns_queries() {
   mdns.processQueries();
 }
@@ -52,53 +47,42 @@ Timer t_mdns_timer(100, _mdns_queries);
 
 void setup()
 {
-    /*server.begin();*/
-    /*httpServer.begin();
-    altServer.begin();*/
-
     Serial.begin(9600);
-
-    /* Device Control */
+    Time.zone(+5.5);
+    /*Particle.syncTime();*/
+    /* 1. Device Control */
     init_device_control();
     register_dev_cntrl_cloud_functions();
 
-    /* Soft AP Button Init */
-    /*init_soft_ap_button();*/
+    /* 2. Soft AP Button Init
+    init_soft_ap_button();*/
 
-    /* Alarms */
-    /*load_alarms();
-    t_monitor_alarms.start();*/
+    /* 3. Alarms */
+    //load_alarms();
+    /*t_monitor_alarms.start();*/
+    Alarm.timerRepeat(2, monitor_alarms);
     register_alarm_cloud_functions();
 
-    /* Auto On Off */
+    /* 4. Auto On Off */
     load_auto_on_time();
     load_auto_off_time();
     register_auto_off_on_cloud_functions();
 
+    /* 5. voodoospark */
     _setup();
     Serial.printf("\nSetup Done");
 
     Serial.println(WiFi.localIP());
 
-
-    /* MDNS Stuff */
-    /*std::vector<String> subServices;*/
-
-    /*subServices.push_back("light");*/
-
     bool success = mdns.setHostname("core-1");
 
-    /*if (success) {
-      success = mdns.addService("tcp", "http", HTTP_PORT, "Core 1", subServices);
+    std::vector<String> subServices;
+    subServices.push_back("smartplug");
+    if (success) {
+      success = mdns.addService("tcp", "http", 80, "core-1", subServices);
     }
 
     mdns.addTXTEntry("normal");
-
-    if (success) {
-      success = mdns.addService("tcp", "http", ALT_HTTP_PORT, "Core alt");
-    }
-
-    mdns.addTXTEntry("alt");*/
 
     if (success) {
       success = mdns.begin();
@@ -107,51 +91,5 @@ void setup()
 }
 
 void loop() {
-  /*_loop();*/
-    /*static bool is_connected = false;
-    if (client.connected()) {
-      if (!is_connected) {
-        Serial.printf("\nClient connected");
-      }
-      is_connected = true;
-      while(client.available()) {
-        Serial.printf("%c", client.read());
-      }
-    } else {
-      if (is_connected) {
-        Serial.printf("\nClient disconnected");
-        client.stop();
-        is_connected = false;
-      }
-
-      client = server.available();
-    }*/
-
-    /*Serial.printf("\nIn Loop");
-    delay(500);*/
-
-    /* MDNS Stuff */
-    /*mdns.processQueries();*/
-
-    /*TCPClient client = httpServer.available();
-
-    if (client){
-      while (client.read() != -1);
-
-      client.write("HTTP/1.1 200 Ok\n\n<html><body><h1>Ok!</h1></body></html>\n\n");
-      client.flush();
-      delay(5);
-      client.stop();
-    }
-
-    TCPClient altClient = altServer.available();
-
-    if (altClient){
-      while (altClient.read() != -1);
-
-      altClient.write("HTTP/1.1 200 Ok\n\n<html><body><h1>Alternative port ok!</h1></body></html>\n\n");
-      altClient.flush();
-      delay(5);
-      altClient.stop();
-    }*/
+  Alarm.delay(1000);
 }

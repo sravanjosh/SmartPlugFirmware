@@ -3,7 +3,6 @@
 
 #include "application.h"
 
-#define   _DEBUG                      1
 #define   PORT                        48879
 #define   MAX_DATA_BYTES              128
 

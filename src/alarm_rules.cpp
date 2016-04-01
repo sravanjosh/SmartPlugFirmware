@@ -25,7 +25,9 @@
 
 #include <vector>
 #include <mutex>
+#include <math.h>
 
+#include "device_control.h"
 #include "alarm_rules.h"
 
 #define GET_ALARM_ADDRESS(INDEX) (ALARMS_START_ADDRESS + INDEX * (sizeof(struct alarm_time)))
@@ -63,14 +65,6 @@ int8_t get_free_alarm_index() {
   Serial.printf("\nget_free_alarm_index: Free alarm index: %d", counter);
   return counter;
 }
-
-/*int get_alarm_address(int8_t index) {
-  if (index >= NO_ALARMS_SUPPORTED) {
-      return -1;
-  }
-
-  return ALARMS_START_ADDRESS + index * (sizeof(struct alarm_time));
-}*/
 
 void load_alarms() {
   for (int i=0; i<NO_ALARMS_SUPPORTED;i++) {
@@ -252,18 +246,19 @@ int f_create_alarm(String t_str){
 
         switch(count++){
             case 0:
-                    alarm->year = (token == "*")?-1:(int16_t)strtol(t_str.c_str(), &endptr, 10);
-                    if ((errno != 0 && alarm->year == 0) || (endptr == t_str.c_str())){
-                      free(alarm);
+                    alarm->year = (token == "*")?-1:(int16_t)strtol(token.c_str(), &endptr, 10);
+                    if ((errno != 0 && alarm->year == 0) || (endptr == token.c_str())){
+
                       Serial.printf("\nIn f_create_alarm:Bad year: %d",
                             alarm->year);
+                      free(alarm);
                       return -1;
                     }
 
                     if(alarm->year < Time.year(Time.local())) {
-                      free(alarm);
                       Serial.printf("\nIn f_create_alarm:Year is in past, year: %d",
                             alarm->year);
+                      free(alarm);
                       return -1;
                     }
 
@@ -271,13 +266,15 @@ int f_create_alarm(String t_str){
                           token.c_str(), alarm->year);
                     break;
             case 1:
-                    alarm->month = (token == "*")?-1:(int8_t)strtol(t_str.c_str(), &endptr, 10);
+                    Serial.printf("\nToken Month: %s", token.c_str());
+                    alarm->month = (token == "*")?-1:(int8_t)strtol(token.c_str(), &endptr, 10);
                     if ((errno != 0 && alarm->month == 0) ||
-                        (endptr == t_str.c_str()) ||
+                        (endptr == token.c_str()) ||
                         alarm->month < 0){
-                      free(alarm);
+
                       Serial.printf("\nIn f_create_alarm:Bad month: %d",
-                            alarm->year);
+                            alarm->month);
+                      free(alarm);
                       return -1;
                     }
 
@@ -285,12 +282,13 @@ int f_create_alarm(String t_str){
                           token.c_str(), alarm->month);
                     break;
             case 2:
-                    alarm->day = (token == "*")?-1:(int8_t)strtol(t_str.c_str(), &endptr, 10);
-                    if ((errno != 0 && alarm->day == 0) || (endptr == t_str.c_str()) ||
-                          alarm->day < 0){
-                      free(alarm);
+                    Serial.printf("\nToken Day: %s", token.c_str());
+                    alarm->day = (token == "*")?-1:(int8_t)strtol(token.c_str(), &endptr, 10);
+                    if ((errno != 0 && alarm->day == 0) || (endptr == token.c_str())){
+
                       Serial.printf("\nIn f_create_alarm:Bad day: %d",
-                            alarm->year);
+                            alarm->day);
+                      free(alarm);
                       return -1;
                     }
 
@@ -298,12 +296,13 @@ int f_create_alarm(String t_str){
                           token.c_str(), alarm->day);
                     break;
             case 3:
-                    alarm->hour = (token == "*")?-1:(int8_t)strtol(t_str.c_str(), &endptr, 10);
-                    if ((errno != 0 && alarm->hour == 0) || (endptr == t_str.c_str()) ||
-                          alarm->hour < 0){
-                      free(alarm);
+                    Serial.printf("\nToken Hour: %s", token.c_str());
+                    alarm->hour = (token == "*")?-1:(int8_t)strtol(token.c_str(), &endptr, 10);
+                    if ((errno != 0 && alarm->hour == 0) || (endptr == token.c_str())){
+
                       Serial.printf("\nIn f_create_alarm:Bad hour: %d",
-                            alarm->year);
+                            alarm->hour);
+                      free(alarm);
                       return -1;
                     }
 
@@ -311,12 +310,13 @@ int f_create_alarm(String t_str){
                           token.c_str(), alarm->hour);
                     break;
             case 4:
-                    alarm->min = (token == "*")?-1:(int8_t)strtol(t_str.c_str(), &endptr, 10);
-                    if ((errno != 0 && alarm->min == 0) || (endptr == t_str.c_str()) ||
-                          alarm->min < 0){
-                      free(alarm);
+                    Serial.printf("\nToken Min: %s", token.c_str());
+                    alarm->min = (token == "*")?-1:(int8_t)strtol(token.c_str(), &endptr, 10);
+                    if ((errno != 0 && alarm->min == 0) || (endptr == token.c_str())){
+
                       Serial.printf("\nIn f_create_alarm:Bad min: %d",
-                            alarm->year);
+                            alarm->min);
+                      free(alarm);
                       return -1;
                     }
 
@@ -324,12 +324,13 @@ int f_create_alarm(String t_str){
                           token.c_str(), alarm->min);
                     break;
             case 5:
-                    alarm->sec = (token == "*")?-1:(int8_t)strtol(t_str.c_str(), &endptr, 10);
-                    if ((errno != 0 && alarm->sec == 0) || (endptr == t_str.c_str()) ||
-                          alarm->sec < 0){
-                      free(alarm);
+                    Serial.printf("\nToken Sec: %s", token.c_str());
+                    alarm->sec = (token == "*")?-1:(int8_t)strtol(token.c_str(), &endptr, 10);
+                    if ((errno != 0 && alarm->sec == 0) || (endptr == token.c_str())){
+
                       Serial.printf("\nIn f_create_alarm:Bad sec: %d",
-                            alarm->year);
+                            alarm->sec);
+                      free(alarm);
                       return -1;
                     }
 
@@ -390,7 +391,6 @@ int f_create_alarm(String t_str){
     }
 
     Serial.printf("\nAlarm added at: %d", persist_alarm(alarm));
-
     return 0;
 }
 
@@ -399,11 +399,45 @@ void register_alarm_cloud_functions() {
   Particle.function("delete_alarm", f_delete_alarm);
 }
 
-Timer t_monitor_alarms(1000, monitor_alarms);
+// Timer t_monitor_alarms(1000, monitor_alarms);
+// TimeAlarmsClass alarm_monitor_alarms = TimeAlarmsClass() ;
+
+boolean invoke_alarm(uint8_t index) {
+  if (alarms[index] != NULL) {
+    if (alarms[index]->action == ON) {
+      switch_on();
+    } else if(alarms[index]->action == OFF) {
+      switch_off();
+    } else {
+      Serial.printf("\nInvalid action");
+    }
+  }
+}
+
 void monitor_alarms() {
+  Serial.printf("\n----- MONITOR ALARM START -------");
   for (uint8_t i=0; i < NO_ALARMS_SUPPORTED;i++) {
     Serial.printf("\n%d:", i);
     print_alarm(alarms[i]);
+    unsigned long cur_time = Time.now();
+    // Serial.printf("\n%d:%d:%d:%d:%d", cur_time, Time.month(cur_time), Time.day(cur_time), Time.hour(cur_time), Time.minute(cur_time));
+    // cur_time = Time.local();
+    // Serial.printf("\n%d: %d:%d:%d:%d", cur_time, Time.month(cur_time), Time.day(cur_time), Time.hour(cur_time), Time.minute(cur_time));
+    if((alarms[i]->month == -1 || Time.month(cur_time) == alarms[i]->month) &&
+       (alarms[i]->day == -1 || Time.day(cur_time) == alarms[i]->day) &&
+       (alarms[i]->hour == -1 || Time.hour(cur_time) == alarms[i]->hour) &&
+       (alarms[i]->min == -1 || Time.minute(cur_time) == alarms[i]->min) &&
+       (alarms[i]->dow_mask == 0xff ||
+            (( (int)pow(2, 7-Time.weekday(cur_time)) & alarms[i]->dow_mask ) != 0x0))
+      ) {
+        // The following if condition makes sure, if min is "*", it will not apply
+        //    trigger (say ON) again if the user switches off after the alarm.
+        //  This condition reduces this chance.
+        if(Time.second(cur_time) >= 0 && Time.second(cur_time) <= 3) {
+          invoke_alarm(i);
+        }
+      }
     Serial.printf("\nmonitor_alarms: Alarm address mask: %x", alarms_addr_mask);
   }
+  Serial.printf("\n----- MONITOR ALARM END -------");
 }

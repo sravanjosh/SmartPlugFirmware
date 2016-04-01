@@ -24,6 +24,7 @@
  */
 
 #include "device_control.h"
+#include "TimeAlarms.h"
 #include <mutex>
 
 /*int led2 = D7;*/
@@ -77,7 +78,8 @@ void switch_off() {
 
 Timer t_switch_of(1000, switch_off, true);
 Timer t_switch_on(1000, switch_on, true);
-
+// TimeAlarmsClass alarm_switch_off = TimeAlarmsClass() ;
+// TimeAlarmsClass alarm_switch_on = TimeAlarmsClass() ;
 // **************************
 // CLOUD FUNCTIONS
 // **************************
@@ -90,7 +92,7 @@ int f_switch_on(String t_str){
     char *endptr;
     uint16_t _time = (uint16_t)strtol(t_str.c_str(), &endptr, 10);
     if ((errno != 0 && _time == 0) || (endptr == t_str.c_str())){
-      return -1;
+      _time = 0;
     }
 
     if (_time > MAX_ONE_TIME_ON_OFF_TIMER) {
@@ -106,6 +108,7 @@ int f_switch_on(String t_str){
     } else {
       t_switch_on.changePeriod(_time);
       t_switch_on.reset();
+      // Alarm.timerOnce(_time, switch_on);
     }
 
     return 0;
@@ -120,7 +123,7 @@ int f_switch_off(String t_str){
     char *endptr;
     uint16_t _time = (uint16_t)strtol(t_str.c_str(), &endptr, 10);
     if ((errno != 0 && _time == 0) || (endptr == t_str.c_str())){
-      return -1;
+      _time = 0;
     }
 
     if (_time > MAX_ONE_TIME_ON_OFF_TIMER) {
@@ -136,6 +139,7 @@ int f_switch_off(String t_str){
     } else {
       t_switch_of.changePeriod(_time);
       t_switch_of.start();
+      // Alarm.timerOnce(_time, switch_off);
     }
 
     return 0;
