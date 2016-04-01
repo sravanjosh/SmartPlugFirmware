@@ -305,37 +305,46 @@ int f_create_alarm(String t_str){
                       free(alarm);
                       return -1;
                     }
-
+                    #if _DEBUG
                     Serial.printf("\nIn f_create_alarm:token %s, hour: %d",
                           token.c_str(), alarm->hour);
+                    #endif
                     break;
             case 4:
+                    #if _DEBUG
                     Serial.printf("\nToken Min: %s", token.c_str());
+                    #endif
                     alarm->min = (token == "*")?-1:(int8_t)strtol(token.c_str(), &endptr, 10);
                     if ((errno != 0 && alarm->min == 0) || (endptr == token.c_str())){
-
+                      #if _DEBUG
                       Serial.printf("\nIn f_create_alarm:Bad min: %d",
                             alarm->min);
+                      #endif
                       free(alarm);
                       return -1;
                     }
-
+                    #if _DEBUG
                     Serial.printf("\nIn f_create_alarm:token %s, min: %d",
                           token.c_str(), alarm->min);
+                    #endif
                     break;
             case 5:
+                    #if _DEBUG
                     Serial.printf("\nToken Sec: %s", token.c_str());
+                    #endif
                     alarm->sec = (token == "*")?-1:(int8_t)strtol(token.c_str(), &endptr, 10);
                     if ((errno != 0 && alarm->sec == 0) || (endptr == token.c_str())){
-
+                      #if _DEBUG
                       Serial.printf("\nIn f_create_alarm:Bad sec: %d",
                             alarm->sec);
+                      #endif
                       free(alarm);
                       return -1;
                     }
-
+                    #if _DEBUG
                     Serial.printf("\nIn f_create_alarm:token %s, sec: %d",
                           token.c_str(), alarm->sec);
+                    #endif
                     break;
             case 6:
 
@@ -362,8 +371,10 @@ int f_create_alarm(String t_str){
                       if (token.find("6", 0, 1) != std::string::npos)
                             alarm->dow_mask |= 0x01;
                     }
+                    #if _DEBUG
                     Serial.printf("\nIn f_create_alarm:token %s, dow_mask: %x",
                           token.c_str(), alarm->dow_mask);
+                    #endif
 
                     break;
             case 7:
@@ -374,8 +385,10 @@ int f_create_alarm(String t_str){
                     } else {
                         return -1;
                     }
+                    #if _DEBUG
                     Serial.printf("\nIn f_create_alarm:token %s, action: %d",
                           token.c_str(), (int)alarm->action);
+                    #endif
                     break;
             default:
                     /* Never hit if the time format sent is correct */
@@ -389,8 +402,9 @@ int f_create_alarm(String t_str){
       free(alarm);
       return -1;
     }
-
+    #if _DEBUG
     Serial.printf("\nAlarm added at: %d", persist_alarm(alarm));
+    #endif
     return 0;
 }
 
@@ -409,7 +423,9 @@ boolean invoke_alarm(uint8_t index) {
     } else if(alarms[index]->action == OFF) {
       switch_off();
     } else {
+      #if _DEBUG
       Serial.printf("\nInvalid action");
+      #endif
     }
   }
 }
@@ -417,10 +433,15 @@ boolean invoke_alarm(uint8_t index) {
 void monitor_alarms() {
   Serial.printf("\n----- MONITOR ALARM START -------");
   for (uint8_t i=0; i < NO_ALARMS_SUPPORTED;i++) {
+    #if _DEBUG
     Serial.printf("\n%d:", i);
+    #endif
+
     print_alarm(alarms[i]);
     unsigned long cur_time = Time.now();
-    // Serial.printf("\n%d:%d:%d:%d:%d", cur_time, Time.month(cur_time), Time.day(cur_time), Time.hour(cur_time), Time.minute(cur_time));
+    #if _DEBUG
+    Serial.printf("\n%d:%d:%d:%d:%d", cur_time, Time.month(cur_time), Time.day(cur_time), Time.hour(cur_time), Time.minute(cur_time));
+    #endif
     // cur_time = Time.local();
     // Serial.printf("\n%d: %d:%d:%d:%d", cur_time, Time.month(cur_time), Time.day(cur_time), Time.hour(cur_time), Time.minute(cur_time));
     if((alarms[i]->month == -1 || Time.month(cur_time) == alarms[i]->month) &&
@@ -437,7 +458,11 @@ void monitor_alarms() {
           invoke_alarm(i);
         }
       }
+    #if _DEBUG
     Serial.printf("\nmonitor_alarms: Alarm address mask: %x", alarms_addr_mask);
+    #endif
   }
+  #if _DEBUG
   Serial.printf("\n----- MONITOR ALARM END -------");
+  #endif
 }
