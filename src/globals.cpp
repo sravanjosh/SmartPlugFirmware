@@ -1,4 +1,3 @@
-
 #include "globals.h"
 
-volatile bool is_away = true;
+volatile bool is_away = false;

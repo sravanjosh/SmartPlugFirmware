@@ -22,38 +22,40 @@
  * Controlling the device's input/output pins to switch_on and switch_off the
  * smart plug.
  */
+
+#ifndef _SCHEDULE_H
+#define _SCHEDULE_H
+
 #include "globals.h"
-#include "sp_manager.h"
+#include <vector>
 
-SYSTEM_THREAD(ENABLED);
+#define EVERY -1
+using namespace std;
 
-void show_schedules() {
-  Serial.printf("\nSchedules: %d",
-                SpManager::instance()->smartLoads[0].schedulesVector.size());
-#if _DEBUG == 1
-  Serial.printf("\nCur Time: %s", Time.timeStr().c_str());
+class Schedule {
+public:
+  /* Start Date */
+
+  int s_year = EVERY, s_month = EVERY, s_day = EVERY, s_hour = EVERY,
+      s_min = EVERY, s_sec = EVERY;
+  bool s_day_of_week[7] = {0};
+
+  /* End date - Optional and action will be negated at this time */
+  int e_year = EVERY, e_month = EVERY, e_day = EVERY, e_hour = EVERY,
+      e_min = EVERY, e_sec = EVERY;
+  bool e_day_of_week[7] = {0};
+
+  bool recurring = false;
+  DeviceActionEnum action;
+  OnTick_t switchOnFunction, switchOffFunction, callBackFn;
+
+  Schedule();
+  void set_call_back_fn(OnTick_t onTickHandler) { callBackFn = onTickHandler; }
+  void set_on_function(OnTick_t onTickHandler);
+  void set_off_function(OnTick_t onTickHandler);
+  void set_action(DeviceActionEnum act) { action = act; }
+
+  vector<AlarmID_t> start();
+};
+
 #endif
-}
-
-void setup() {
-  Serial.begin(9600);
-  Time.zone(+5.5);
-
-  Particle.syncTime();
-
-  System.set(SYSTEM_CONFIG_SOFTAP_PREFIX, "LinkPlug");
-
-  SpManager::instance()->init();
-
-  Alarm.timerRepeat(3, show_schedules);
-}
-
-int now = Time.now();
-void loop() {
-  if ((Time.now() - now) > 3600) {
-    /*More Than An Hour Syncing Time, Let's do that*/
-    Particle.syncTime();
-    now = Time.now();
-  }
-  Alarm.delay(1000);
-}

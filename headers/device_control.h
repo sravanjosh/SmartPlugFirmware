@@ -23,31 +23,80 @@
  * smart plug.
  */
 
+#ifndef __DEV_CTRL_H
+#define __DEV_CTRL_H
 
-#ifndef __DEV_CTRL_
-#define __DEV_CTRL_
+#include "globals.h"
+#include "schedules.h"
+#include <map>
+#include <mutex>
+#include <vector>
 
-#include "application.h"
-#include "auto_off_on.h"
+using namespace std;
 
-#define     SMART_PLUG_PIN D7
+#define DEVICE_INFO_MEM_LOCATION 100
 
-// Timer used is uint16_t, so a max of 65535 is possible, for safety restricted
-//    to 15 Hours
-#define     MAX_ONE_TIME_ON_OFF_TIMER 54000
+class SmartLoad {
 
-extern      int led2;
+private:
+  int pin;
+  bool status = false;
+  int auto_on_time = 0, auto_off_time = 0;
 
-// extern unsigned long last_on_time;
-// extern unsigned long last_off_time;
+  static std::map<AlarmID_t, struct ScheduleSmartLoad *> alarmIdToScheduleMap;
 
-void        init_device_control();
-bool        is_switch_on();
-void        register_dev_cntrl_cloud_functions();
-void        switch_on();
-void        switch_off();
+  mutex on_off_mutex;
+  Timer *delayedOnTimer, *delayedOffTimer, *autoOnTimer, *autoOffTimer;
 
-int         f_switch_on(String t_str);
-int         f_switch_off(String t_str);
+public:
+  vector<Schedule *> schedulesVector;
+  SmartLoad() {
+    delayedOnTimer = new Timer(1000, [&]() { return switch_on(); }, true);
+    delayedOffTimer = new Timer(1000, [&]() { return switch_off(); }, true);
+
+    autoOnTimer = new Timer(1000, [&]() { return switch_on(); }, true);
+    autoOffTimer = new Timer(1000, [&]() { return switch_off(); }, true);
+  }
+  SmartLoad(int pin);
+
+  void set_pin(int pin);
+
+  void set_auto_on_time(int minutes) {
+    auto_on_time = minutes;
+    if (auto_on_time <= 0) {
+      stop_auto_on();
+    }
+  }
+
+  void set_auto_off_time(int minutes) {
+    auto_off_time = minutes;
+    if (auto_off_time <= 0) {
+      stop_auto_off();
+    }
+  }
+
+  static void manage_alarms();
+
+  bool createSchedule(Schedule *schedule);
+
+  bool delete_schedule(int index);
+
+  void switch_on(int afterSeconds);
+  void switch_off(int afterSeconds);
+
+  void switch_on();
+  void switch_off();
+  bool is_switch_on();
+
+  void start_auto_on();
+  void start_auto_off();
+  void stop_auto_on();
+  void stop_auto_off();
+};
+
+struct ScheduleSmartLoad {
+  Schedule *schedule;
+  SmartLoad *smartLoad;
+};
 
 #endif

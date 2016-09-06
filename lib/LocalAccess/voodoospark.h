@@ -15,6 +15,8 @@
 #define   AUTO_ON_TIME                0x06
 #define   AUTO_OFF_TIME               0x07
 
+#define   CREATE_ALARM                0x0B
+
 #define   ACTION_RANGE                0x0F
 
 // Number of Seconds not received keepalives takeoff client

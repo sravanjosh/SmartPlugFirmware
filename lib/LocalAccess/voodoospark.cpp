@@ -34,31 +34,33 @@
 
 #include "voodoospark.h"
 #include "device_control.h"
-#include "auto_off_on.h"
 #include "globals.h"
 
 uint8_t bytesToExpectByAction[] = {
-  0, //keepalive (0x00)
-  /* Device Control */
-  2, //f_switch_on (0x01)
-  2, //f_switch_off (0x02)
-  0, //Reserved
-  0, //Reserved
-  0, //Reserved
+    0, // keepalive (0x00)
+    /* Device Control */
+    2, // f_switch_on (0x01)
+    2, // f_switch_off (0x02)
+    0, // Reserved
+    0, // Reserved
+    0, // Reserved
 
-  /* auto_on_off */
-  1, //f_auto_on
-  1, //f_auto_off
-  0, //Reserved
-  0, //Reserved
-  0, //Reserved
+    /* auto_on_off */
+    1, // f_auto_on
+    1, // f_auto_off
+    0, // Reserved
+    0, // Reserved
+    0, // Reserved
+
+    /* alarm */
+    5, // create_alarm
 
 };
 
 TCPServer server = TCPServer(PORT);
 TCPClient client;
 
-volatile bool hasAction   = false;
+volatile bool hasAction = false;
 volatile bool isConnected = false;
 
 byte analogReporting[20];
@@ -73,16 +75,15 @@ int bytesRead = 0;
 int bytesExpecting = 0;
 int reporters = 0;
 
-int lastKeepaliveTime          = 0;
-Thread* monitorClientThread;
-
+int lastKeepaliveTime = 0;
+// Thread* monitorClientThread;
 
 void cacheBuffer(int byteCount, int cacheLength) {
-  // Copy the expected bytes into the cache and shift
-  // the unused bytes to the beginning of the buffer
-  #if _DEBUG
+// Copy the expected bytes into the cache and shift
+// the unused bytes to the beginning of the buffer
+#if _DEBUG
   Serial.print("Cached: ");
-  #endif
+#endif
 
   for (int k = 0; k < byteCount; k++) {
     // Cache the bytes that we're expecting for
@@ -90,26 +91,26 @@ void cacheBuffer(int byteCount, int cacheLength) {
     if (k < cacheLength) {
       cached[k] = buffer[k];
 
-      #if _DEBUG
+#if _DEBUG
       Serial.print("0x");
       Serial.print(cached[k], HEX);
       Serial.print(", ");
-      #endif
+#endif
     }
 
     // Shift the unused buffer to the front
     buffer[k] = buffer[k + cacheLength];
   }
 
-  #if _DEBUG
+#if _DEBUG
   Serial.println("");
-  #endif
+#endif
 }
 
 void restore() {
-  #if _DEBUG
+#if _DEBUG
   Serial.println("--------------RESTORING");
-  #endif
+#endif
 
   hasAction = false;
   isConnected = false;
@@ -142,9 +143,9 @@ void processInput() {
 
   unsigned long us;
 
-  #if _DEBUG
+#if _DEBUG
   Serial.println("--------------PROCESSING");
-  #endif
+#endif
 
   // Only check if buffer[0] is possibly an action
   // when there is no action in progress.
@@ -154,14 +155,14 @@ void processInput() {
       bytesExpecting = bytesToExpectByAction[action] + 1;
       hasAction = true;
 
-      #if _DEBUG
+#if _DEBUG
       Serial.print("Bytes Read: ");
       Serial.println(bytesRead, DEC);
       Serial.print("Bytes Required: ");
       Serial.println(bytesExpecting, DEC);
       Serial.print("Bytes Remaining: ");
       Serial.println(bytesRead - bytesExpecting, DEC);
-      #endif
+#endif
     }
   }
 
@@ -169,9 +170,9 @@ void processInput() {
     hasAction = false;
     bytesExpecting = 0;
 
-    #if _DEBUG
+#if _DEBUG
     Serial.println("Not Enough Bytes.");
-    #endif
+#endif
     return;
   }
 
@@ -182,84 +183,107 @@ void processInput() {
     cacheBuffer(byteCount, bytesExpecting);
     byteCount -= bytesExpecting;
 
-    #if _DEBUG
+#if _DEBUG
     Serial.print("ACTION: 0x");
     Serial.println(action, HEX);
-    #endif
+#endif
 
     // Proceed with action processing
     switch (action) {
 
-      case KEEPALIVE:
-          lastKeepaliveTime = Time.local();
+    case KEEPALIVE:
+      lastKeepaliveTime = Time.local();
 
-          // Acknowledge the KEEPALIVE
-          server.write((byte)0x00);
+      // Acknowledge the KEEPALIVE
+      server.write((byte)0x00);
 
-          break;
-      case SWITCH_ON:
-          {
-            uint16_t time = (uint16_t)(cached[1] | (cached[2] << 8));
+      break;
+    case SWITCH_ON: {
+      uint16_t time = (uint16_t)(cached[1] | (cached[2] << 8));
 
-            #if _DEBUG
-            Serial.printf("\nSwitch On: Time: %d", time);
-            #endif
+#if _DEBUG
+      Serial.printf("\nSwitch On: Time: %d", time);
+#endif
 
-            if (f_switch_on(String(time, DEC)) == 0) {
-              server.write((byte)0x00);
-            }
-          }
+      // if (f_switch_on(String(time, DEC)) == 0) {
+      //   server.write((byte)0x00);
+      // }
+    }
 
-        break;
-      case SWITCH_OFF:
-          {
-            uint16_t time = (uint16_t)(cached[1] | (cached[2] << 8));
+    break;
+    case SWITCH_OFF: {
+      uint16_t time = (uint16_t)(cached[1] | (cached[2] << 8));
 
-            #if _DEBUG
-            Serial.printf("\nSwitch Off: Time: %d", time);
-            #endif
+#if _DEBUG
+      Serial.printf("\nSwitch Off: Time: %d", time);
+#endif
 
-            if(f_switch_off(String(time, DEC)) == 0) {
-              server.write((byte)0x00);
-            }
-          }
+      // if(f_switch_off(String(time, DEC)) == 0) {
+      //   server.write((byte)0x00);
+      // }
+    }
 
-        break;
-      case AUTO_ON_TIME:
-          {
-            #if _DEBUG
-            Serial.printf("\nAuto On: Time: %d", cached[1]);
-            #endif
+    break;
+    case AUTO_ON_TIME: {
+#if _DEBUG
+      Serial.printf("\nAuto On: Time: %d", cached[1]);
+#endif
 
-            if(f_auto_on(String(cached[1], DEC)) == 0) {
-              server.write((byte)0x00);
-            }
-          }
+      // if(f_auto_on(String(cached[1], DEC)) == 0) {
+      //   server.write((byte)0x00);
+      // }
+    }
 
-        break;
-      case AUTO_OFF_TIME:
-          {
-            #if _DEBUG
-            Serial.printf("\nAuto Off: Time: %d", cached[1]);
-            #endif
+    break;
+    case AUTO_OFF_TIME: {
+#if _DEBUG
+      Serial.printf("\nAuto Off: Time: %d", cached[1]);
+#endif
 
-            if(f_auto_off(String(cached[1], DEC)) == 0) {
-              server.write((byte)0x00);
-            }
-          }
+      // if(f_auto_off(String(cached[1], DEC)) == 0) {
+      //   server.write((byte)0x00);
+      // }
+    }
 
-        break;
-      default: // noop
-        break;
+    break;
+    case CREATE_ALARM: {
+#if _DEBUG
+      Serial.printf("\nCreate alarm: Mon: %d, Day: %d,\
+                            Hour: %d, Min: %d, Trigger: %d",
+                    (int8_t)cached[1], (int8_t)cached[2], (int8_t)cached[3],
+                    (int8_t)cached[4], (int8_t)cached[5]);
+#endif
+
+// String s_create_alarm = String((int16_t)2016, DEC) + CLOUD_TIME_STAMP_DELIM +\
+              //                         String((int8_t)cached[1], DEC) + CLOUD_TIME_STAMP_DELIM +\
+              //                         String((int8_t)cached[2], DEC) + CLOUD_TIME_STAMP_DELIM +\
+              //                         String((int8_t)cached[3], DEC) + CLOUD_TIME_STAMP_DELIM +\
+              //                         String((int8_t)cached[4], DEC) + CLOUD_TIME_STAMP_DELIM +\
+              //                         "00" + CLOUD_TIME_STAMP_DELIM + \
+              //                         "*" + CLOUD_TIME_STAMP_DELIM +\
+              //                         ((((int8_t)cached[5]) == 0)?"OFF":"ON") + CLOUD_TIME_STAMP_DELIM \
+              //                         + "P0" + CLOUD_TIME_STAMP_DELIM;
+#if _DEBUG
+// Serial.printf("\nCreate alarm string: %s", s_create_alarm.c_str());
+#endif
+      // if(f_create_alarm(s_create_alarm) == 0) {
+      //   server.write((byte)0x00);
+      // } else {
+      //   server.write((byte)0x01);
+      // }
+    }
+
+    break;
+    default: // noop
+      break;
     } // <-- This is the end of the switch
 
     memset(&cached[0], 0, 64);
 
-    #if _DEBUG
+#if _DEBUG
     Serial.print("Unprocessed Bytes: ");
     Serial.println(byteCount, DEC);
-    #endif
-
+#endif
 
     // Reset hasAction flag (no longer needed for this opertion)
     // action and byte read expectation flags
@@ -273,15 +297,15 @@ void processInput() {
     bytesRead = byteCount;
 
     if (byteCount > 2) {
-      #if _DEBUG
+#if _DEBUG
       Serial.println("Calling processInput ");
-      #endif
+#endif
 
       processInput();
     } else {
-      #if _DEBUG
+#if _DEBUG
       Serial.println("RETURN TO LOOP!");
-      #endif
+#endif
     }
   }
 }
@@ -290,9 +314,9 @@ void _setup() {
 
   server.begin();
 
-  #if _DEBUG
+#if _DEBUG
   Serial.begin(115200);
-  #endif
+#endif
 
   IPAddress ip = WiFi.localIP();
   static char ipAddress[24] = "";
@@ -303,7 +327,8 @@ void _setup() {
   Particle.variable("endpoint", ipAddress, STRING);
 
   t_voodootimer.start();
-  // monitorClientThread = new Thread("monitorClientThread", monitorClients, NULL);
+  // monitorClientThread = new Thread("monitorClientThread", monitorClients,
+  // NULL);
 }
 
 void _loop() {
@@ -312,14 +337,14 @@ void _loop() {
     if (!isConnected) {
       restore();
       lastKeepaliveTime = Time.local();
-      #if _DEBUG
+#if _DEBUG
       Serial.println("--------------CONNECTED");
-      #endif
+#endif
     } else {
-      if((Time.local() - lastKeepaliveTime) >= KEEPALIVE_TIMEOUT) {
-        #if _DEBUG
+      if ((Time.local() - lastKeepaliveTime) >= KEEPALIVE_TIMEOUT) {
+#if _DEBUG
         Serial.println("--------------KEEPALIVE EXPIRED, CLOSED");
-        #endif
+#endif
 
         client.flush();
         client.stop();
@@ -338,11 +363,11 @@ void _loop() {
 
       int received = 0;
 
-      #if _DEBUG
+#if _DEBUG
       Serial.println("--------------BUFFERING AVAILABLE BYTES");
       Serial.print("Byte Offset: ");
       Serial.println(bytesRead, DEC);
-      #endif
+#endif
 
       // Move all available bytes into the buffer,
       // this avoids building up back pressure in
@@ -352,7 +377,7 @@ void _loop() {
         received++;
       }
 
-      #if _DEBUG
+#if _DEBUG
       Serial.print("Bytes Received: ");
       Serial.println(received, DEC);
 
@@ -366,7 +391,7 @@ void _loop() {
         Serial.print(", ");
       }
       Serial.println("");
-      #endif
+#endif
 
       processInput();
     }
