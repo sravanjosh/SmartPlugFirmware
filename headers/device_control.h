@@ -38,7 +38,7 @@ using namespace std;
 
 class SmartLoad {
 
-private:
+public:
   int pin;
   bool status = false;
   int auto_on_time = 0, auto_off_time = 0;
@@ -48,7 +48,11 @@ private:
   mutex on_off_mutex;
   Timer *delayedOnTimer, *delayedOffTimer, *autoOnTimer, *autoOffTimer;
 
-public:
+  // This magic number helps us to figure out whether
+  //   after loading the SmartLoad obj from EEPROM, it is actually loaded
+  //   or we got some junk data
+  volatile uint16_t magic_number = SMART_LOAD_MAGIC_NUMBER;
+
   vector<Schedule *> schedulesVector;
   SmartLoad() {
     delayedOnTimer = new Timer(1000, [&]() { return switch_on(); }, true);
@@ -57,7 +61,6 @@ public:
     autoOnTimer = new Timer(1000, [&]() { return switch_on(); }, true);
     autoOffTimer = new Timer(1000, [&]() { return switch_off(); }, true);
   }
-  SmartLoad(int pin);
 
   void set_pin(int pin);
 
@@ -76,6 +79,7 @@ public:
   }
 
   static void manage_alarms();
+  static void manage_alarms_negate();
 
   bool createSchedule(Schedule *schedule);
 

@@ -31,14 +31,6 @@ std::map<AlarmID_t, struct ScheduleSmartLoad *> SmartLoad::alarmIdToScheduleMap;
 void SmartLoad::set_pin(int pin) {
   this->pin = pin;
   pinMode(pin, OUTPUT);
-
-  if (pin == D7) {
-    Schedule *schedule = new Schedule;
-    schedule->s_hour = 23;
-    schedule->s_min = 55;
-    schedule->action = ACTION_ON;
-    createSchedule(schedule);
-  }
 }
 
 void SmartLoad::switch_on(int afterSeconds) {
@@ -160,12 +152,40 @@ void SmartLoad::manage_alarms() {
   }
 }
 
+void SmartLoad::manage_alarms_negate() {
+#if _DEBUG == 1
+  Serial.printf("\nmanage_alarms: Entered Manage Alarms");
+#endif
+  AlarmID_t alarm_id = Alarm.getTriggeredAlarmId();
+  if (alarmIdToScheduleMap.find(alarm_id) != alarmIdToScheduleMap.end()) {
+    struct ScheduleSmartLoad *scheduleSmartLoad =
+        SmartLoad::alarmIdToScheduleMap[alarm_id];
+#if _DEBUG == 1
+    Serial.printf("\nmanage_alarms: Schedule H:%d, M:%d, ",
+                  scheduleSmartLoad->schedule->s_hour,
+                  scheduleSmartLoad->schedule->s_min);
+#endif
+    if (scheduleSmartLoad->schedule->action == ACTION_ON) {
+#if _DEBUG == 1
+      Serial.printf("\nmanage_alarms: Switching ON");
+#endif
+      scheduleSmartLoad->smartLoad->switch_off();
+    } else if (scheduleSmartLoad->schedule->action == ACTION_OFF) {
+#if _DEBUG == 1
+      Serial.printf("\nmanage_alarms: Switching OFF");
+#endif
+      scheduleSmartLoad->smartLoad->switch_on();
+    }
+  }
+}
+
 bool SmartLoad::createSchedule(Schedule *schedule) {
   if (schedulesVector.size() < MAX_SCHEDULES_PER_DEVICE) {
 #if _DEBUG == 1
-    Serial.printf("createSchedule: Creating Schedule");
+    Serial.printf("\ncreateSchedule: Creating Schedule");
 #endif
-    schedule->set_call_back_fn(&SmartLoad::manage_alarms);
+    schedule->set_on_function(&SmartLoad::manage_alarms);
+    schedule->set_off_function(&SmartLoad::manage_alarms_negate);
     schedulesVector.push_back(schedule);
     vector<AlarmID_t> alarm_ids = schedule->start();
 
@@ -180,7 +200,7 @@ bool SmartLoad::createSchedule(Schedule *schedule) {
     return true;
   }
 #if _DEBUG == 1
-  Serial.printf("createSchedule: Not Creating Schedule, already %d",
+  Serial.printf("\ncreateSchedule: Not Creating Schedule, already %d",
                 schedulesVector.size());
 #endif
   return false;

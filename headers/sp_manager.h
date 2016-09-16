@@ -15,20 +15,18 @@ class SpManager {
 private:
   static SpManager *spManagerInstance;
 
-  SpManager() {
-    for (int i = 0; i < NUMBER_OF_PINS; i++) {
-      smartLoads[i].set_pin(SUPPORTED_PINS[i]);
-    }
+  SpManager() {}
 
-    Particle.function("switch_on", &SpManager::f_switch_on, this);
-    Particle.function("switch_off", &SpManager::f_switch_off, this);
-    Particle.function("is_switch_on", &SpManager::f_is_switch_on, this);
+  int f_switch_off(String);
+  int f_switch_on(String);
+  int f_is_switch_on(String);
 
-    Particle.function("auto_on", &SpManager::f_auto_on, this);
-    Particle.function("auto_off", &SpManager::f_auto_off, this);
+  int f_auto_off(String);
+  int f_auto_on(String);
 
-    set_skuid_variable();
-  }
+  int f_create_schedule(String);
+
+  int f_factory_reset(String);
 
   void set_skuid_variable() {
 #if SKU_ID == SKU_LINK_PLUG_1
@@ -43,25 +41,16 @@ private:
     Particle.variable("sku_id", sku_id);
   }
 
-  int f_switch_off(String t_str);
-  int f_switch_on(String t_str);
-  int f_is_switch_on(String t_str);
-
-  int f_auto_off(String t_str);
-  int f_auto_on(String t_str);
-
 public:
-  SmartLoad smartLoads[NUMBER_OF_PINS];
+  SmartLoad *smartLoads[NUMBER_OF_PINS];
 
   void switch_off_all();
   void switch_on_all();
 
-  void init() {
-    switch_off_all();
-#if _DEBUG
-    Serial.printf("\nSpManager.init: Initialization Finished.");
-#endif
-  }
+  void init();
+
+  void persist_data_eeprom();
+  void persist_data_eeprom(int);
 
   static SpManager *instance() {
     if (!spManagerInstance) {

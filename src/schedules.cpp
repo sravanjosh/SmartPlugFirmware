@@ -36,26 +36,43 @@ void Schedule::set_off_function(OnTick_t onTickHandler) {
 
 vector<AlarmID_t> Schedule::start() {
 #if _DEBUG == 1
-  Serial.printf("Schedule::start : Alarm monitoring started");
+  Serial.printf("\nSchedule::start : Alarm monitoring started");
 #endif
   vector<AlarmID_t> alarm_ids;
-  if ((s_day_of_week[0] == s_day_of_week[1]) &&
-      (s_day_of_week[0] == s_day_of_week[2]) &&
-      (s_day_of_week[0] == s_day_of_week[3]) &&
-      (s_day_of_week[0] == s_day_of_week[4]) &&
-      (s_day_of_week[0] == s_day_of_week[5]) &&
-      (s_day_of_week[0] == s_day_of_week[6])) {
+  // if ((s_day_of_week[0] == s_day_of_week[1]) &&
+  //     (s_day_of_week[0] == s_day_of_week[2]) &&
+  //     (s_day_of_week[0] == s_day_of_week[3]) &&
+  //     (s_day_of_week[0] == s_day_of_week[4]) &&
+  //     (s_day_of_week[0] == s_day_of_week[5]) &&
+  //     (s_day_of_week[0] == s_day_of_week[6])) {
+
+  if (((s_day_of_week & 0xEF) == 0xEF) || ((s_day_of_week | 0x00) == 0x00)) {
     // All false or all true, which means daily
-    Alarm.alarmRepeat(s_hour, s_min, 0, switchOnFunction);
-    AlarmID_t id = Alarm.alarmRepeat(s_hour, s_min, 0, callBackFn);
+    // Alarm.alarmRepeat(s_hour, s_min, 0, switchOnFunction);
+    AlarmID_t id = Alarm.alarmRepeat(s_hour, s_min, 0, switchOnFunction);
     alarm_ids.push_back(id);
+
+    if (e_hour != -1 && e_min != -1) {
+      id = Alarm.alarmRepeat(e_hour, e_min, 0, switchOffFunction);
+      alarm_ids.push_back(id);
+    }
   } else {
+    uint8_t mask = 0x80;
     for (int i = 0; i < 7; i++) {
-      if (s_day_of_week[i] == true) {
+      if (s_day_of_week & (mask >> 1)) {
 
         AlarmID_t id =
             Alarm.alarmRepeat((i + 1), s_hour, s_min, 0, switchOnFunction);
         alarm_ids.push_back(id);
+
+        if (e_hour != -1 && e_min != -1) {
+          if (((e_hour == s_hour) && (e_min < s_min)) || (e_hour < s_hour)) {
+            int dow = i + 2;
+            if (dow == 8)
+              dow = 0;
+            id = Alarm.alarmRepeat(dow, e_hour, e_min, 0, switchOffFunction);
+          }
+        }
       }
     }
   }

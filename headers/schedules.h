@@ -36,21 +36,21 @@ class Schedule {
 public:
   /* Start Date */
 
-  int s_year = EVERY, s_month = EVERY, s_day = EVERY, s_hour = EVERY,
-      s_min = EVERY, s_sec = EVERY;
-  bool s_day_of_week[7] = {0};
+  int s_day = EVERY, s_hour = EVERY, s_min = EVERY, s_sec = EVERY;
+  // bool s_day_of_week[7] = {0};
+  // Left most bit of s_day_of_week is unused
+  uint8_t s_day_of_week;
 
   /* End date - Optional and action will be negated at this time */
-  int e_year = EVERY, e_month = EVERY, e_day = EVERY, e_hour = EVERY,
-      e_min = EVERY, e_sec = EVERY;
-  bool e_day_of_week[7] = {0};
+  int e_day = EVERY, e_hour = EVERY, e_min = EVERY, e_sec = EVERY;
+  // bool e_day_of_week[7] = {0};
 
   bool recurring = false;
   DeviceActionEnum action;
-  OnTick_t switchOnFunction, switchOffFunction, callBackFn;
+  OnTick_t switchOnFunction, switchOffFunction;
 
   Schedule();
-  void set_call_back_fn(OnTick_t onTickHandler) { callBackFn = onTickHandler; }
+
   void set_on_function(OnTick_t onTickHandler);
   void set_off_function(OnTick_t onTickHandler);
   void set_action(DeviceActionEnum act) { action = act; }

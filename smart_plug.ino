@@ -29,9 +29,10 @@ SYSTEM_THREAD(ENABLED);
 
 void show_schedules() {
   Serial.printf("\nSchedules: %d",
-                SpManager::instance()->smartLoads[0].schedulesVector.size());
+                SpManager::instance()->smartLoads[0]->schedulesVector.size());
 #if _DEBUG == 1
   Serial.printf("\nCur Time: %s", Time.timeStr().c_str());
+/*Serial.printf("\nSize Of SmartLoad: %d", sizeof(SmartLoad));*/
 #endif
 }
 
@@ -43,6 +44,9 @@ void setup() {
 
   System.set(SYSTEM_CONFIG_SOFTAP_PREFIX, "LinkPlug");
 
+#if _DEBUG == 1
+  delay(5000);
+#endif
   SpManager::instance()->init();
 
   Alarm.timerRepeat(3, show_schedules);
@@ -55,5 +59,7 @@ void loop() {
     Particle.syncTime();
     now = Time.now();
   }
+
+  /**/
   Alarm.delay(1000);
 }

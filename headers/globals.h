@@ -22,6 +22,13 @@
 #define MAX_SCHEDULES_PER_DEVICE 5
 #define CLOUD_FN_ARG_DELIM ':'
 
+// This magic number helps us to figure out whether
+//   after loading the SmartLoad obj from EEPROM, it is actually loaded
+//   or we got some junk data
+#define SMART_LOAD_MAGIC_NUMBER 0xdead
+#define SMART_LOAD_EEPROM_STARTING_LOCATION 100
+#define SMART_LOAD_EEPROM_SIZE 200
+
 volatile extern bool is_away;
 
 // TODO: Need to change the first pin to D0, after testing
