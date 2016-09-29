@@ -1,3 +1,27 @@
+/*************************************************************************
+ *
+ * LINKCONNETWORKS CONFIDENTIAL
+ * __________________
+ *
+ *  2016 - LinkConNetworks Inc.
+ *  All Rights Reserved.
+ *
+ * NOTICE:  All information contained herein is, and remains
+ * the property of LinkCon Networks Incorporated and its suppliers,
+ * if any.  The intellectual and technical concepts contained
+ * herein are proprietary to LinkCon Networks Incorporated
+ * and its suppliers and may be covered by U.S. and Foreign Patents,
+ * patents in process, and are protected by trade secret or copyright law.
+ * Dissemination of this information or reproduction of this material
+ * is strictly forbidden unless prior written permission is obtained
+ * from LinkCon Networks Incorporated.
+ *
+ * Author: Joshi Sravan Kumar K
+ * LinkCon SmartPlug
+ *
+ * Controlling the device's input/output pins to switch_on and switch_off the
+ * smart plug.
+ */
 #include "sp_manager.h"
 
 SpManager *SpManager::spManagerInstance = 0;
@@ -15,9 +39,8 @@ void SpManager::switch_off_all() {
 }
 
 void SpManager::init() {
-#if _DEBUG
-  Serial.printf("\nSpManager.init: Initialization Started.");
-#endif
+
+  DEBUG_PRINTF("\nSpManager.init: Initialization Started.");
 
   for (int i = 0; i < NUMBER_OF_PINS; i++) {
     SmartLoad *smLoad = new SmartLoad;
@@ -26,24 +49,23 @@ void SpManager::init() {
                *smLoad);
 
     if (smLoad->magic_number != SMART_LOAD_MAGIC_NUMBER) {
-#if _DEBUG
-      Serial.printf(
+      DEBUG_PRINTF(
           "\nSpManager::init: Magic didn't match, creating new, %d, %u", i,
           smLoad->magic_number);
-#endif
       smartLoads[i] = new SmartLoad;
       smartLoads[i]->set_pin(SUPPORTED_PINS[i]);
+      smartLoads[i]->is_dimmable = DIMMER_SUPPORTED[i];
+      if (smartLoads[i]->is_dimmable) {
+        smartLoads[i]->set_zcd_pin(ZCD_PINS[i]);
+      }
     } else {
-#if _DEBUG
-      Serial.printf("\nSpManager::init: Magic matched, not creating new, %d",
-                    i);
-#endif
+      DEBUG_PRINTF("\nSpManager::init: Magic matched, not creating new, %d", i);
+
       smartLoads[i] = smLoad;
-#if _DEBUG
-      Serial.printf("\nSpManager::init: Pin %d, AutoOff %d, AutonOn %d ",
-                    smartLoads[i]->pin, smartLoads[i]->auto_off_time,
-                    smartLoads[i]->auto_on_time);
-#endif
+      DEBUG_PRINTF("\nSpManager::init: Pin %d, AutoOff %d, AutonOn %d ",
+                   smartLoads[i]->pin, smartLoads[i]->auto_off_time,
+                   smartLoads[i]->auto_on_time);
+
       // smartLoads[i] = new SmartLoad;
       // smartLoads[i]->set_pin(SUPPORTED_PINS[i]);
     }
@@ -62,16 +84,12 @@ void SpManager::init() {
   set_skuid_variable();
 
   switch_off_all();
-#if _DEBUG
-  Serial.printf("\nSpManager.init: Initialization Finished.");
-#endif
+  DEBUG_PRINTF("\nSpManager.init: Initialization Finished.");
 }
 
 void SpManager::persist_data_eeprom(int index) {
-#if _DEBUG
-  Serial.printf(
+  DEBUG_PRINTF(
       "\nSpManager::persist_data_eeprom: Persisting data in EEPROM, %d", index);
-#endif
 
   /*EEPROM.put(SMART_LOAD_EEPROM_STARTING_LOCATION +
                  (index * SMART_LOAD_EEPROM_SIZE),
@@ -93,55 +111,61 @@ t_str - <pin_number>[:seconds]
 <pin_number> - 0 to MAX_SUPPORTED_PINS
 */
 int SpManager::f_switch_on(String t_str) {
-#if _DEBUG
-  Serial.printf("\nf_switch_on: Received '%s'", t_str.c_str());
-#endif
+  DEBUG_PRINTF("\nf_switch_on: Received '%s'", t_str.c_str());
 
   std::string s = t_str.c_str();
   size_t pos = 0;
   std::string token;
 
   char *endptr;
-  int pin = -100, seconds = 0;
+  int pin = -100, seconds = 0, dim_level = -1;
 
   int iterCounter = 0;
   while ((pos = s.find(CLOUD_FN_ARG_DELIM)) != std::string::npos) {
     token = s.substr(0, pos);
     switch (iterCounter) {
     case 0:
-#if _DEBUG
-      Serial.printf("\nf_switch_on: In Case Pin, %s", token.c_str());
-#endif
+      DEBUG_PRINTF("\nf_switch_on: In Case Pin, %s", token.c_str());
+
       pin = (int)strtol(token.c_str(), &endptr, 10);
       if ((errno != 0 && pin == 0) || (endptr == token.c_str())) {
-#if _DEBUG
-        Serial.printf("\nf_switch_on: Couldn't find mandatory 'pin' argument");
-#endif
+        DEBUG_PRINTF("\nf_switch_on: Couldn't find mandatory 'pin' argument");
         /*return -1;*/
         /*TODO: Just for testing, after that we need to return -1*/
         pin = 0;
       }
       if (pin >= NUMBER_OF_PINS) {
-/*return -2;*/
-/*TODO: Just for testing, after that we need to return -2*/
-#if _DEBUG
-        Serial.printf("\nf_switch_on: Pin (%d) greater than supported (%d), "
-                      "resetting to 0",
-                      pin, NUMBER_OF_PINS);
-#endif
+        /*return -2;*/
+        /*TODO: Just for testing, after that we need to return -2*/
+        DEBUG_PRINTF("\nf_switch_on: Pin (%d) greater than supported (%d), "
+                     "resetting to 0",
+                     pin, NUMBER_OF_PINS);
         pin = 0;
       }
       break;
     case 1:
-#if _DEBUG
-      Serial.printf("\nf_switch_on: In Case Seconds, %s", token.c_str());
-#endif
+      DEBUG_PRINTF("\nf_switch_on: In Case Seconds, %s", token.c_str());
+
       int _time = (int)strtol(token.c_str(), &endptr, 10);
       if ((errno != 0 && _time == 0) || (endptr == token.c_str())) {
         seconds = 0;
       }
 
       seconds = _time;
+      break;
+    case 2:
+      DEBUG_PRINTF("\nf_switch_on: In Case Dim Level, %s", token.c_str());
+
+      dim_level = (int)strtol(token.c_str(), &endptr, 10);
+      if ((errno != 0 && _time == 0) || (endptr == token.c_str())) {
+        dim_level = -1;
+      }
+
+      if (dim_level > DIMMER_LEVELS || dim_level < 0) {
+        DEBUG_PRINTF("\nf_switch_on: Wrong Dim Level. Keeping old dim, %s",
+                     dim_level);
+        dim_level = -1;
+      }
       break;
     }
     s.erase(0, pos + 1);
@@ -155,9 +179,11 @@ int SpManager::f_switch_on(String t_str) {
     return -3;
   }
 
-#if _DEBUG
-  Serial.printf("\nf_switch_on: PIN: %d, Sec: %d", pin, seconds);
-#endif
+  DEBUG_PRINTF("\nf_switch_on: PIN: %d, Sec: %d, Dim Level: %d", pin, seconds,
+               dim_level);
+
+  if (dim_level != -1)
+    smartLoads[pin]->dim_to(dim_level);
   smartLoads[pin]->switch_on(seconds);
 
   return 0;
@@ -168,9 +194,8 @@ t_str - <pin_number>[:seconds]
 <pin_number> - 0 to MAX_SUPPORTED_PINS
 */
 int SpManager::f_switch_off(String t_str) {
-#if _DEBUG
-  Serial.printf("\nf_switch_off: Received '%s'", t_str.c_str());
-#endif
+  DEBUG_PRINTF("\nf_switch_off: Received '%s'", t_str.c_str());
+
   std::string s = t_str.c_str();
   size_t pos = 0;
   std::string token;
@@ -183,14 +208,12 @@ int SpManager::f_switch_off(String t_str) {
     token = s.substr(0, pos);
     switch (iterCounter) {
     case 0:
-#if _DEBUG
-      Serial.printf("\nf_switch_off: In Case Pin, %s", token.c_str());
-#endif
+      DEBUG_PRINTF("\nf_switch_off: In Case Pin, %s", token.c_str());
+
       pin = (int)strtol(token.c_str(), &endptr, 10);
       if ((errno != 0 && pin == 0) || (endptr == token.c_str())) {
-#if _DEBUG
-        Serial.printf("\nf_switch_off: Couldn't find mandatory 'pin' argument");
-#endif
+        DEBUG_PRINTF("\nf_switch_off: Couldn't find mandatory 'pin' argument");
+
         /*return -1;*/
         /*TODO: Just for testing, after that we need to return -1*/
         pin = 0;
@@ -202,9 +225,8 @@ int SpManager::f_switch_off(String t_str) {
       }
       break;
     case 1:
-#if _DEBUG
-      Serial.printf("\nf_switch_off: In Case Seconds, %s", token.c_str());
-#endif
+      DEBUG_PRINTF("\nf_switch_off: In Case Seconds, %s", token.c_str());
+
       int _time = (int)strtol(token.c_str(), &endptr, 10);
       if ((errno != 0 && _time == 0) || (endptr == token.c_str())) {
         seconds = 0;
@@ -230,16 +252,14 @@ int SpManager::f_switch_off(String t_str) {
 }
 
 int SpManager::f_is_switch_on(String t_str) {
-#if _DEBUG
-  Serial.printf("\nf_switch_off: Received '%s'", t_str.c_str());
-#endif
+  DEBUG_PRINTF("\nf_switch_off: Received '%s'", t_str.c_str());
+
   char *endptr;
   int pin = (int)strtol(t_str.c_str(), &endptr, 10);
 
   if ((errno != 0 && pin == 0) || (endptr == t_str.c_str())) {
-#if _DEBUG
-    Serial.printf("\nf_is_switch_on: Couldn't find mandatory 'pin' argument");
-#endif
+    DEBUG_PRINTF("\nf_is_switch_on: Couldn't find mandatory 'pin' argument");
+
     /*return -1;*/
     /*TODO: Just for testing, after that we need to return -1*/
     pin = 0;
@@ -252,9 +272,7 @@ int SpManager::f_is_switch_on(String t_str) {
 
 int SpManager::f_auto_off(String t_str) {
 
-#if _DEBUG
-  Serial.printf("\nf_auto_off: Received '%s'", t_str.c_str());
-#endif
+  DEBUG_PRINTF("\nf_auto_off: Received '%s'", t_str.c_str());
 
   std::string s = t_str.c_str();
   size_t pos = 0;
@@ -269,16 +287,12 @@ int SpManager::f_auto_off(String t_str) {
     switch (iterCounter) {
     case 0:
 
-#if _DEBUG
-      Serial.printf("\nf_auto_off: In Case Pin, %s", token.c_str());
-#endif
-
+      DEBUG_PRINTF("\nf_auto_off: In Case Pin, %s", token.c_str());
       pin = (int)strtol(token.c_str(), &endptr, 10);
       if ((errno != 0 && pin == 0) || (endptr == token.c_str())) {
 
-#if _DEBUG
-        Serial.printf("\nf_auto_off: Couldn't find mandatory 'pin' argument");
-#endif
+        DEBUG_PRINTF("\nf_auto_off: Couldn't find mandatory 'pin' argument");
+
         /*return -1;*/
         /*TODO: Just for testing, after that we need to return -1*/
         pin = 0;
@@ -290,9 +304,8 @@ int SpManager::f_auto_off(String t_str) {
       }
       break;
     case 1:
-#if _DEBUG
-      Serial.printf("\nf_auto_off: In Case Seconds, %s", token.c_str());
-#endif
+      DEBUG_PRINTF("\nf_auto_off: In Case Seconds, %s", token.c_str());
+
       int _time = (int)strtol(token.c_str(), &endptr, 10);
       if ((errno != 0 && _time == 0) || (endptr == token.c_str())) {
         minutes = 0;
@@ -320,9 +333,8 @@ int SpManager::f_auto_off(String t_str) {
 }
 
 int SpManager::f_auto_on(String t_str) {
-#if _DEBUG
-  Serial.printf("\nf_auto_on: Received '%s'", t_str.c_str());
-#endif
+  DEBUG_PRINTF("\nf_auto_on: Received '%s'", t_str.c_str());
+
   std::string s = t_str.c_str();
   size_t pos = 0;
   std::string token;
@@ -335,14 +347,10 @@ int SpManager::f_auto_on(String t_str) {
     token = s.substr(0, pos);
     switch (iterCounter) {
     case 0:
-#if _DEBUG
-      Serial.printf("\nf_auto_on: In Case Pin, %s", token.c_str());
-#endif
+      DEBUG_PRINTF("\nf_auto_on: In Case Pin, %s", token.c_str());
       pin = (int)strtol(token.c_str(), &endptr, 10);
       if ((errno != 0 && pin == 0) || (endptr == token.c_str())) {
-#if _DEBUG
-        Serial.printf("\nf_auto_on: Couldn't find mandatory 'pin' argument");
-#endif
+        DEBUG_PRINTF("\nf_auto_on: Couldn't find mandatory 'pin' argument");
         /*return -1;*/
         /*TODO: Just for testing, after that we need to return -1*/
         pin = 0;
@@ -354,9 +362,8 @@ int SpManager::f_auto_on(String t_str) {
       }
       break;
     case 1:
-#if _DEBUG
-      Serial.printf("\nf_auto_on: In Case Seconds, %s", token.c_str());
-#endif
+      DEBUG_PRINTF("\nf_auto_on: In Case Seconds, %s", token.c_str());
+
       int _time = (int)strtol(token.c_str(), &endptr, 10);
       if ((errno != 0 && _time == 0) || (endptr == token.c_str())) {
         minutes = 0;
@@ -385,9 +392,8 @@ int SpManager::f_auto_on(String t_str) {
 
 // pin:s_hour:s_min:s_dow:e_hour:e_min:action
 int SpManager::f_create_schedule(String t_str) {
-#if _DEBUG
-  Serial.printf("\nf_create_schedule: Received '%s'", t_str.c_str());
-#endif
+  DEBUG_PRINTF("\nf_create_schedule: Received '%s'", t_str.c_str());
+
   std::string s = t_str.c_str();
   size_t pos = 0;
   std::string token;
@@ -401,15 +407,12 @@ int SpManager::f_create_schedule(String t_str) {
     token = s.substr(0, pos);
     switch (iterCounter) {
     case 0: {
-#if _DEBUG
-      Serial.printf("\nf_create_schedule: In Case Pin, %s", token.c_str());
-#endif
+      DEBUG_PRINTF("\nf_create_schedule: In Case Pin, %s", token.c_str());
+
       pin = (int)strtol(token.c_str(), &endptr, 10);
       if ((errno != 0 && pin == 0) || (endptr == token.c_str())) {
-#if _DEBUG
-        Serial.printf(
+        DEBUG_PRINTF(
             "\nf_create_schedule: Couldn't find mandatory 'pin' argument");
-#endif
         /*return -1;*/
         /*TODO: Just for testing, after that we need to return -1*/
         pin = 0;
@@ -421,9 +424,8 @@ int SpManager::f_create_schedule(String t_str) {
       }
     } break;
     case 1: {
-#if _DEBUG
-      Serial.printf("\nf_create_schedule: In Case s_hour, %s", token.c_str());
-#endif
+      DEBUG_PRINTF("\nf_create_schedule: In Case s_hour, %s", token.c_str());
+
       int _time = 0;
       _time = (int)strtol(token.c_str(), &endptr, 10);
       if ((errno != 0 && _time == 0) || (endptr == token.c_str())) {
@@ -433,9 +435,8 @@ int SpManager::f_create_schedule(String t_str) {
       s_hour = _time;
     } break;
     case 2: {
-#if _DEBUG
-      Serial.printf("\nf_create_schedule: In Case s_min, %s", token.c_str());
-#endif
+      DEBUG_PRINTF("\nf_create_schedule: In Case s_min, %s", token.c_str());
+
       int _time = (int)strtol(token.c_str(), &endptr, 10);
       if ((errno != 0 && _time == 0) || (endptr == token.c_str())) {
         s_min = 0;
@@ -444,9 +445,8 @@ int SpManager::f_create_schedule(String t_str) {
       s_min = _time;
     } break;
     case 3: {
-#if _DEBUG
-      Serial.printf("\nf_create_schedule: In Case s_dow, %s", token.c_str());
-#endif
+      DEBUG_PRINTF("\nf_create_schedule: In Case s_dow, %s", token.c_str());
+
       uint8_t _time1 = 0;
       _time1 = (uint8_t)strtol(token.c_str(), &endptr, 10);
       if ((errno != 0 && _time1 == 0) || (endptr == token.c_str())) {
@@ -458,9 +458,8 @@ int SpManager::f_create_schedule(String t_str) {
       // work well
     } break;
     case 4: {
-#if _DEBUG
-      Serial.printf("\nf_create_schedule: In Case e_hour, %s", token.c_str());
-#endif
+      DEBUG_PRINTF("\nf_create_schedule: In Case e_hour, %s", token.c_str());
+
       int _time = (int)strtol(token.c_str(), &endptr, 10);
       if ((errno != 0 && _time == 0) || (endptr == token.c_str())) {
         e_hour = 0;
@@ -469,9 +468,8 @@ int SpManager::f_create_schedule(String t_str) {
       e_hour = _time;
     } break;
     case 5: {
-#if _DEBUG
-      Serial.printf("\nf_create_schedule: In Case e_min, %s", token.c_str());
-#endif
+      DEBUG_PRINTF("\nf_create_schedule: In Case e_min, %s", token.c_str());
+
       int _time = (int)strtol(token.c_str(), &endptr, 10);
       if ((errno != 0 && _time == 0) || (endptr == token.c_str())) {
         e_min = 0;

@@ -37,10 +37,21 @@ using namespace std;
 #define DEVICE_INFO_MEM_LOCATION 100
 
 class SmartLoad {
+private:
+  // 0 - DIMMER_LEVELS. 0 - No Dim (ON), DIMMER_LEVELS - Max DIM (OFF)
+  int dim_value;
+  void zero_cross_interrupt();
+  Timer *triac_down_timer;
+
+  void triac_on() {
+    digitalWrite(this->pin, HIGH);
+    delayMicroseconds(TRIAC_PROP_DELAY);
+    digitalWrite(this->pin, LOW);
+  }
 
 public:
-  int pin;
-  bool status = false;
+  int pin, zcd_pin;
+  bool status = false, is_dimmable = false;
   int auto_on_time = 0, auto_off_time = 0;
 
   static std::map<AlarmID_t, struct ScheduleSmartLoad *> alarmIdToScheduleMap;
@@ -60,9 +71,12 @@ public:
 
     autoOnTimer = new Timer(1000, [&]() { return switch_on(); }, true);
     autoOffTimer = new Timer(1000, [&]() { return switch_off(); }, true);
+
+    triac_down_timer = new Timer(1, [&]() { return triac_on(); }, true);
   }
 
   void set_pin(int pin);
+  void set_zcd_pin(int pin);
 
   void set_auto_on_time(int minutes) {
     auto_on_time = minutes;
@@ -96,6 +110,8 @@ public:
   void start_auto_off();
   void stop_auto_on();
   void stop_auto_off();
+
+  void dim_to(int dim_value);
 };
 
 struct ScheduleSmartLoad {

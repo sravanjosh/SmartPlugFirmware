@@ -35,9 +35,8 @@ void Schedule::set_off_function(OnTick_t onTickHandler) {
 }
 
 vector<AlarmID_t> Schedule::start() {
-#if _DEBUG == 1
-  Serial.printf("\nSchedule::start : Alarm monitoring started");
-#endif
+  DEBUG_PRINTF("\nSchedule::start : Alarm monitoring started");
+
   vector<AlarmID_t> alarm_ids;
   // if ((s_day_of_week[0] == s_day_of_week[1]) &&
   //     (s_day_of_week[0] == s_day_of_week[2]) &&
